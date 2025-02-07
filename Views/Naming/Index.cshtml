@@ -1,0 +1,151 @@
+@{
+    ViewData["Title"] = "Azure Naming Enforcer";
+}
+
+<div class="container my-5">
+    <!-- Header -->
+    <div class="bg-primary text-white text-center py-3 shadow rounded">
+        <h2>Azure Naming Enforcer</h2>
+    </div>
+
+    <!-- Instructions -->
+    <div class="card mt-4 shadow">
+        <div class="card-body">
+            <h5 class="card-title text-center">How to Use</h5>
+            <p class="text-center">
+                Select a resource type from the dropdown. The recommended abbreviation appears in the second column.
+                Complete the naming pattern using Azure best practices.
+            </p>
+            <p class="text-center">
+                Check "Custom Naming" in a row to disable the abbreviation and manually define the entire naming
+                pattern.
+            </p>
+
+            <div class="row mt-4">
+                <!-- Example Patterns -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold">Example Patterns</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><b>Default Mode:</b> <code>vm-max-3-env(3)-app(3)</code></li>
+                        <li class="list-group-item"><b>Custom Naming:</b> <code>mycustomname-xyz</code></li>
+                    </ul>
+                </div>
+
+                <!-- Pattern Guide -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold">Pattern Guide</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><code>(max-3)</code> → Up to 3 characters</li>
+                        <li class="list-group-item"><code>(3)</code> → Exactly 3 characters</li>
+                        <li class="list-group-item"><code>{env}(max-4)</code> → Customizable (max 4 chars)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Button to add new resource -->
+    <button class="btn btn-primary mt-4" id="addResource">
+        <i class="bi bi-plus-circle"></i> Add Resource
+    </button>
+
+    <!-- Table -->
+    <div class="table-responsive mt-4">
+        <table class="table table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Resource Type</th>
+                    <th>Abbreviation</th>
+                    <th>Naming Pattern</th>
+                </tr>
+            </thead>
+            <tbody id="resourceTable">
+                <!-- Rows will be dynamically added here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Buttons for Generate and Download -->
+    <div class="d-flex gap-3 mt-3">
+        <button class="btn btn-success" id="generatePolicies">
+            <i class="bi bi-check-circle"></i> Generate Policies
+        </button>
+        <button class="btn btn-secondary d-none" id="downloadPolicies">
+            <i class="bi bi-download"></i> Download Policies
+        </button>
+    </div>
+
+    <!-- Display generated policy -->
+    <div class="card mt-4 d-none" id="policyResult">
+        <div class="card-body">
+            <h5 class="card-title">Generated Policy</h5>
+            <pre class="bg-light p-3 rounded" id="policyJson"></pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    let resourcesList = [];
+    let resources = [];
+
+    async function loadResources() {
+        const response = await fetch('/Naming/GetResources');
+        resources = await response.json();
+    }
+
+    document.addEventListener("DOMContentLoaded", loadResources);
+
+    document.getElementById("addResource").addEventListener("click", function () {
+        const table = document.getElementById("resourceTable");
+
+        const rowIndex = resourcesList.length;
+        const newRow = document.createElement("tr");
+        newRow.innerHTML = `
+            <td>
+                <select class="form-select" onchange="updateResource(${rowIndex}, this.value)">
+                    <option value="">Select a Resource</option>
+                    ${resources.map(r => `<option value="${r.name}">${r.name}</option>`).join('')}
+                </select>
+            </td>
+            <td class="text-center" id="abbreviation-${rowIndex}">-</td>
+            <td>
+                <input type="text" class="form-control" placeholder="Enter naming pattern" id="pattern-${rowIndex}">
+            </td>
+        `;
+        table.appendChild(newRow);
+        resourcesList.push({ selectedResource: "", abbreviation: "", pattern: "" });
+    });
+
+    function updateResource(index, value) {
+        const resource = resources.find(r => r.name === value);
+        if (resource) {
+            document.getElementById(`abbreviation-${index}`).innerText = `${resource.abbreviation}-`;
+        }
+    }
+
+    document.getElementById("generatePolicies").addEventListener("click", async function () {
+        const payload = resourcesList.map((res, index) => ({
+            name: res.selectedResource,
+            type: resources.find(r => r.name === res.selectedResource)?.type || "",
+            pattern: document.getElementById(`pattern-${index}`).value
+        }));
+
+        const response = await fetch("/Naming/GeneratePolicies", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ resources: payload })
+        });
+
+        const data = await response.json();
+        if (data.policies.length > 0) {
+            document.getElementById("policyResult").classList.remove("d-none");
+            document.getElementById("policyJson").textContent = JSON.stringify(data.policies[0], null, 2);
+            document.getElementById("downloadPolicies").classList.remove("d-none");
+        }
+    });
+
+    document.getElementById("downloadPolicies").addEventListener("click", function () {
+        window.location.href = "/Naming/DownloadPolicies";
+    });
+</script>
