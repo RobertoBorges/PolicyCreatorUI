@@ -1,0 +1,37 @@
+# Pastas e arquivos gerados pelo Visual Studio/VS Code
+.vs/
+.vscode/
+.idea/
+
+# Diretórios de build
+bin/
+obj/
+
+# Pacotes NuGet e pastas de cache
+*.nupkg
+packages/
+.nuget/
+
+# Arquivos de configuração e dados específicos do usuário
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Arquivos temporários, logs e backup
+*.log
+*.tmp
+*.bak
+
+# Diretórios e arquivos gerados automaticamente (publicação, bundling, etc.)
+wwwroot/lib/
+
+# Diretórios do Node.js (se houver)
+node_modules/
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Outros arquivos ou pastas que você desejar ignorar
