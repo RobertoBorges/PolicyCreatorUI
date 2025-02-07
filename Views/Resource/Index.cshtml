@@ -55,28 +55,28 @@
     .drawflow .drawflow-node.field-node {
         border-color: #0078D4;
         -webkit-box-shadow: 0px 2px 15px 2px #0078D4;
-        box-shadow:  0px 2px 15px 2px #0078D4;
+        box-shadow: 0px 2px 15px 2px #0078D4;
     }
 
     /* Condition nodes */
     .drawflow .drawflow-node.condition-node {
         border-color: #28a745;
         -webkit-box-shadow: 0px 2px 15px 2px #28a745;
-        box-shadow:  0px 2px 15px 2px #28a745;
+        box-shadow: 0px 2px 15px 2px #28a745;
     }
 
     /* Logical Operator nodes */
     .drawflow .drawflow-node.logical-node {
         border-color: #6f42c1;
         -webkit-box-shadow: 0px 2px 15px 2px #6f42c1;
-        box-shadow:  0px 2px 15px 2px #6f42c1;
+        box-shadow: 0px 2px 15px 2px #6f42c1;
     }
 
     /* Effect nodes */
     .drawflow .drawflow-node.effect-node {
         border-color: #dc3545;
         -webkit-box-shadow: 0px 2px 15px 2px #dc3545;
-        box-shadow:  0px 2px 15px 2px #dc3545;
+        box-shadow: 0px 2px 15px 2px #dc3545;
     }
 </style>
 
@@ -285,8 +285,21 @@
                         content += "</div>";
                         editor.addNode(nodeInfo.name, 1, 1, pos_x, pos_y, customClass, nodeInfo.data, content, false);
                     } else if (nodeInfo.type === "Field") {
-                        content = "<div><strong>" + nodeInfo.name + "</strong></div>";
-                        editor.addNode(nodeInfo.name, 1, 1, pos_x, pos_y, customClass, nodeInfo.data, content, false);
+                        if (nodeInfo.data.resource === "type") {
+                            getTypeAliases(function (aliases) {
+                                var content = "<div><strong>" + nodeInfo.name + "</strong><br/>";
+                                content += '<select class="field-select form-control form-control-sm" style="margin-top:5px;">';
+                                aliases.forEach(function (opt) {
+                                    content += '<option value="' + opt.value + '">' + opt.text + '</option>';
+                                });
+                                content += '</select></div>';
+                                nodeInfo.data.aliases = aliases[0].value;
+                                editor.addNode(nodeInfo.name, 1, 1, pos_x, pos_y, nodeInfo.name, nodeInfo.data, content, false);
+                            });
+                        } else {
+                            content = "<div><strong>" + nodeInfo.name + "</strong></div>";
+                            editor.addNode(nodeInfo.name, 1, 1, pos_x, pos_y, nodeInfo.name, nodeInfo.data, content, false);
+                        }
                     } else if (nodeInfo.type === "Effect") {
                         var hasEffect = false;
                         var nodes = editor.drawflow.drawflow.Home.data;
@@ -692,7 +705,7 @@
             var nodeId = nodeEl.attr('id').replace('node-', '');
             if (nodeId && editor.drawflow.drawflow.Home.data[nodeId]) {
                 var newAlias = $(this).val();
-                editor.drawflow.drawflow.Home.data[nodeId].data.resource = newAlias;
+                editor.drawflow.drawflow.Home.data[nodeId].data.aliases = newAlias;
 
                 var fieldNode = editor.drawflow.drawflow.Home.data[nodeId];
                 if (fieldNode.outputs && fieldNode.outputs["output_1"]) {
@@ -709,7 +722,6 @@
                                 dropdown += '</select>';
                                 var newContent = "<div><strong>" + toNode.name + "</strong><br/>" + dropdown + "</div>";
 
-                                editor.updateNodeDataFromId(parseInt(toNodeId), { useResourceTypeDropdown: true });
                                 var condNodeEl = document.getElementById("node-" + toNodeId);
                                 if (condNodeEl) {
                                     var contentEl = condNodeEl.querySelector('.drawflow_content_node');
