@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using PolicyCreatorUI.ViewModels;
 
 namespace PolicyCreatorUI.Controllers
 {
@@ -28,27 +27,33 @@ namespace PolicyCreatorUI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> GeneratePolicies([FromBody] Dictionary<string, List<dynamic>> request)
+        public async Task<IActionResult> GeneratePolicies([FromBody] GeneratePoliciesRequest request)
         {
             var policies = new List<object>();
 
-            foreach (var resource in request["resources"])
+            foreach (var resource in request.Resources)
             {
-                string regexPattern = $"^{resource["pattern"]}$";
+                string regexPattern = ConvertPatternToRegex(resource.Pattern, resource.Abbreviation);
+
                 var policy = new
                 {
                     properties = new
                     {
-                        displayName = $"Enforce naming for {resource["name"]}",
+                        displayName = $"Enforce naming for {resource.Name}",
                         policyType = "Custom",
                         mode = "All",
+                        metadata = new
+                        {
+                            category = "Naming Conventions"
+                        },
+                        parameters = new { },
                         policyRule = new
                         {
                             @if = new
                             {
                                 allOf = new object[]
                                 {
-                                    new { field = "type", equals = resource["type"] },
+                                    new { field = "type", equals = resource.Type },
                                     new { field = "name", notMatch = regexPattern }
                                 }
                             },
@@ -61,6 +66,35 @@ namespace PolicyCreatorUI.Controllers
             }
 
             return Json(new { policies });
+        }
+
+        private string ConvertPatternToRegex(string pattern, string abbreviation)
+        {
+            string regexPattern = pattern;
+
+            // {n}(max-N) → [0-9]{1,N}
+            regexPattern = Regex.Replace(regexPattern, @"\{n\}\(max-(\d+)\)", @"[0-9]{1,$1}");
+
+            // {}(max-N) → [a-zA-Z0-9]{1,N}
+            regexPattern = Regex.Replace(regexPattern, @"\{\}\(max-(\d+)\)", @"[a-zA-Z0-9]{1,$1}");
+
+            // {n}(N) → [0-9]{N}
+            regexPattern = Regex.Replace(regexPattern, @"\{n\}\((\d+)\)", @"[0-9]{$1}");
+
+            // {}(N) → [a-zA-Z0-9]{N}
+            regexPattern = Regex.Replace(regexPattern, @"\{\}\((\d+)\)", @"[a-zA-Z0-9]{$1}");
+
+            // {n} → [0-9]+
+            regexPattern = Regex.Replace(regexPattern, @"\{n\}", @"[0-9]+");
+
+            // {} → [a-zA-Z0-9]+
+            regexPattern = Regex.Replace(regexPattern, @"\{\}", @"[a-zA-Z0-9]+");
+
+            // Escapa separadores
+            regexPattern = Regex.Replace(regexPattern, @"[-_]", m => @"\" + m.Value);
+
+            // Adiciona o prefixo fixo com hífen
+            return $"^{Regex.Escape(abbreviation)}-{regexPattern}$";
         }
     }
 }

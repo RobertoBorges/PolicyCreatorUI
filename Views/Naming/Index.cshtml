@@ -114,22 +114,38 @@
             </td>
         `;
         table.appendChild(newRow);
-        resourcesList.push({ selectedResource: "", abbreviation: "", pattern: "" });
+        resourcesList.push({ selectedResource: "", abbreviation: "", type: "", pattern: "" });
     });
 
     function updateResource(index, value) {
         const resource = resources.find(r => r.name === value);
         if (resource) {
             document.getElementById(`abbreviation-${index}`).innerText = `${resource.abbreviation}-`;
+
+            resourcesList[index].selectedResource = resource.name;
+            resourcesList[index].type = resource.type;
+            resourcesList[index].abbreviation = resource.abbreviation;
         }
     }
+
 
     document.getElementById("generatePolicies").addEventListener("click", async function () {
         const payload = resourcesList.map((res, index) => ({
             name: res.selectedResource,
-            type: resources.find(r => r.name === res.selectedResource)?.type || "",
+            type: res.type,
+            abbreviation: res.abbreviation,
             pattern: document.getElementById(`pattern-${index}`).value
         }));
+
+        if (payload.some(p => !p.name || !p.type || !p.pattern)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Information',
+                text: 'Please fill in all fields before generating policies.',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
 
         const response = await fetch("/Naming/GeneratePolicies", {
             method: "POST",
@@ -144,6 +160,7 @@
             document.getElementById("downloadPolicies").classList.remove("d-none");
         }
     });
+
 
     document.getElementById("downloadPolicies").addEventListener("click", function () {
         window.location.href = "/Naming/DownloadPolicies";
