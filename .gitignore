@@ -1,6 +1,6 @@
 # Pastas e arquivos gerados pelo Visual Studio/VS Code
 .vs/
-.vscode/
+vscode/
 .idea/
 
 # Diretórios de build
