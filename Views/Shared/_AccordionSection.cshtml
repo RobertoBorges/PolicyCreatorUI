@@ -1,0 +1,19 @@
+@{
+    var title = ViewData["Title"] as string ?? "Logical Operators";
+    var id = ViewData["Id"] as string ?? "logical-nodes";
+    var expanded = ViewData["Expanded"] as bool? ?? false;
+    var step = ViewData["Step"] as string ?? "1";
+}
+
+<div class="accordion-item">
+    <h2 class="accordion-header" id="heading@(id)">
+        <button class="accordion-button @(expanded ? "" : "collapsed")" type="button" data-bs-toggle="collapse"
+            data-bs-target="#collapse@(id)" aria-expanded="@(expanded.ToString().ToLower())" aria-controls="collapse@(id)">
+            @step - @title
+        </button>
+    </h2>
+    <div id="collapse@(id)" class="accordion-collapse collapse @(expanded ? "show" : "")" aria-labelledby="heading@(id)"
+        data-bs-parent="#sidebarAccordion">
+        <div class="accordion-body" id="@id"></div>
+    </div>
+</div>
